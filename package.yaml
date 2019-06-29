@@ -1,0 +1,36 @@
+library:
+  source-dirs: src
+tests:
+  lifegame-test:
+    source-dirs: test
+    main: Spec.hs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - lifegame
+copyright: 2019 cuboktahedron
+maintainer: cuboktahedron@gmail.com
+dependencies:
+- gloss
+- base >= 4.7 && < 5
+name: lifegame
+version: 0.1.0.0
+extra-source-files:
+- README.md
+- ChangeLog.md
+author: cuboktahedron
+github: cuboktahedron/lifegame
+license: BSD3
+executables:
+  lifegame-exe:
+    source-dirs: app
+    main: Main.hs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - lifegame
+description: Please see the README on GitHub at <https://github.com/cuboktahedron/lifegame#readme>
