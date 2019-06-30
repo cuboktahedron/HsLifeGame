@@ -92,25 +92,25 @@ nextState dt state
     state { cells = nextCells (cells state), frame = ((frame state) + 1) }
 
 nextCells :: [[Bool]] -> [[Bool]]
-nextCells board =
+nextCells cells =
   let coords = [(x, y) | x <- [0 .. fieldSizeM1], y <- [0 .. fieldSizeM1]]
-      cells = map (nextCell board) coords
-  in [take fieldSize (drop (fieldSize * i) cells) | i <- [0 .. fieldSizeM1]]
+      lineCells = map (nextCell cells) coords
+  in [take fieldSize (drop (fieldSize * i) lineCells) | i <- [0 .. fieldSizeM1]]
 
 nextCell :: [[Bool]] -> (Int, Int) -> Bool
-nextCell board (x, y) =
-  let cell = board !! x !! y
+nextCell cells (x, y) =
+  let cell = cells !! x !! y
       surround = length
         $ filter
           (== True)
-          [ isActive board (x - 1) (y - 1)
-          , isActive board x (y - 1)
-          , isActive board (x + 1) (y - 1)
-          , isActive board (x - 1) y
-          , isActive board (x + 1) y
-          , isActive board (x - 1) (y + 1)
-          , isActive board x (y + 1)
-          , isActive board (x + 1) (y + 1)]
+          [ isActive cells (x - 1) (y - 1)
+          , isActive cells x (y - 1)
+          , isActive cells (x + 1) (y - 1)
+          , isActive cells (x - 1) y
+          , isActive cells (x + 1) y
+          , isActive cells (x - 1) (y + 1)
+          , isActive cells x (y + 1)
+          , isActive cells (x + 1) (y + 1)]
   in if cell
      then surround == 2 || surround == 3
      else surround == 3
