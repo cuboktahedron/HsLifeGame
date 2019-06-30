@@ -19,7 +19,10 @@ window :: Display
 window =
   InWindow "Conway's Game of Life" (windowWidth, windowHeight) (100, 100)
 
-data State = State { cells :: [[Bool]], frame :: Int }
+data State = State { cells :: [[Bool]], frame :: Int, isPaused :: Bool }
+
+defState :: State
+defState = State { cells = [[]], frame = 0, isPaused = False }
 
 --------------------------
 -- シミュレーションの実装
@@ -39,7 +42,7 @@ fieldSizeM1 = fieldSize - 1
 initialCells :: IO State
 initialCells = do
   cells <- mapM (\_ -> replicateM fieldSize randomIO) [0 .. fieldSizeM1]
-  return (State cells 0)
+  return defState { cells = cells }
 
 drawState :: State -> Picture
 drawState state =
@@ -66,10 +69,16 @@ drawCell cells (x, y) =
      else blank
 
 drawFrame :: Int -> [Picture]
-drawFrame frame = [(translate 0 (windowHeight - 40) . scale 0.25 0.25 $ text (show frame))]
+drawFrame frame = [ (translate 0 (windowHeight - 40) . scale 0.25 0.25
+                     $ text (show frame))]
 
 nextState :: ViewPort -> Float -> State -> State
-nextState vp dt state = State (nextCells (cells state)) ((frame state) + 1)
+nextState vp dt state =
+  if (isPaused state)
+  then state
+  else defState { cells = nextCells (cells state)
+                , frame = ((frame state) + 1)
+                }
 
 nextCells :: [[Bool]] -> [[Bool]]
 nextCells board =
