@@ -1,4 +1,4 @@
-# lifegame
+# HsLifeGame
 
 This is Conway's game of life made by Haskell.
 
