@@ -116,11 +116,19 @@ nextCell board (x, y) =
      else surround == 3
 
 isActive :: [[Bool]] -> Int -> Int -> Bool
-isActive board x y = let size = length board
-                         outer = x < 0 || x >= size || y < 0 || y >= size
-                     in if outer
-                        then False
-                        else board !! x !! y
+isActive board x y =
+  let size = length board
+      xx = case x of
+        _
+          | x < 0 -> size - 1
+          | x == size -> 0
+          | otherwise -> x
+      yy = case y of
+        _
+          | y < 0 -> size - 1
+          | y == size -> 0
+          | otherwise -> y
+  in board !! xx !! yy
 
 operate :: (Event -> State -> State)
 operate (EventKey key ks _ _) state = operateWithKey key ks state
