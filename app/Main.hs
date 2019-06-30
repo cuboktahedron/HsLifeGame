@@ -19,6 +19,8 @@ window :: Display
 window =
   InWindow "Conway's Game of Life" (windowWidth, windowHeight) (100, 100)
 
+data State = State { cells :: [[Bool]], frame :: Int }
+
 --------------------------
 -- シミュレーションの実装
 --------------------------
@@ -34,13 +36,25 @@ fieldSize = 100
 fieldSizeM1 :: Int
 fieldSizeM1 = fieldSize - 1
 
-initialCells :: IO [[Bool]]
-initialCells = mapM (\_ -> replicateM fieldSize randomIO) [0 .. fieldSizeM1]
+initialCells :: IO State
+initialCells = do
+  cells <- mapM (\_ -> replicateM fieldSize randomIO) [0 .. fieldSizeM1]
+  return (State cells 0)
 
-drawCells :: [[Bool]] -> Picture
+drawState :: State -> Picture
+drawState state =
+  let vp = ViewPort { viewPortTranslate = (-320, -320)
+                    , viewPortRotate = 0
+                    , viewPortScale = 1
+                    }
+  in applyViewPortToPicture vp
+     $ Pictures
+     $ drawCells (cells state) ++ drawFrame (frame state)
+
+drawCells :: [[Bool]] -> [Picture]
 drawCells cells =
   let pts = [(x, y) | x <- [0 .. fieldSizeM1], y <- [0 .. fieldSizeM1]]
-  in Pictures $ map (drawCell cells) pts
+  in map (drawCell cells) pts
 
 drawCell :: [[Bool]] -> (Int, Int) -> Picture
 drawCell cells (x, y) =
@@ -51,8 +65,14 @@ drawCell cells (x, y) =
      then translate coordX coordY $ rectangleSolid cellWidth cellHeight
      else blank
 
-nextCells :: ViewPort -> Float -> [[Bool]] -> [[Bool]]
-nextCells vp dt board =
+drawFrame :: Int -> [Picture]
+drawFrame frame = [(translate 0 (windowHeight - 40) . scale 0.25 0.25 $ text (show frame))]
+
+nextState :: ViewPort -> Float -> State -> State
+nextState vp dt state = State (nextCells (cells state)) ((frame state) + 1)
+
+nextCells :: [[Bool]] -> [[Bool]]
+nextCells board =
   let coords = [(x, y) | x <- [0 .. fieldSizeM1], y <- [0 .. fieldSizeM1]]
       cells = map (nextCell board) coords
   in [take fieldSize (drop (fieldSize * i) cells) | i <- [0 .. fieldSizeM1]]
@@ -88,4 +108,4 @@ isActive board x y = let size = length board
 main :: IO ()
 main = do
   cells <- initialCells
-  simulate window white 10 cells drawCells nextCells
+  simulate window white 10 cells drawState nextState
