@@ -2,6 +2,7 @@ module Main where
 
 import           Graphics.Gloss
 import           Graphics.Gloss.Data.ViewPort
+import           Graphics.Gloss.Interface.IO.Game
 import           Debug.Trace
 import           System.Random
 import           Control.Monad
@@ -19,10 +20,15 @@ window :: Display
 window =
   InWindow "Conway's Game of Life" (windowWidth, windowHeight) (100, 100)
 
-data State = State { cells :: [[Bool]], frame :: Int, isPaused :: Bool }
+data State = State { cells :: [[Bool]]
+                   , frame :: Int
+                   , isPaused :: Bool
+                   , isOneTime :: Bool
+                   }
 
 defState :: State
-defState = State { cells = [[]], frame = 0, isPaused = False }
+defState =
+  State { cells = [[]], frame = 0, isPaused = False, isOneTime = False }
 
 --------------------------
 -- シミュレーションの実装
@@ -42,7 +48,7 @@ fieldSizeM1 = fieldSize - 1
 initialCells :: IO State
 initialCells = do
   cells <- mapM (\_ -> replicateM fieldSize randomIO) [0 .. fieldSizeM1]
-  return defState { cells = cells }
+  return defState { cells = cells, isPaused = True }
 
 drawState :: State -> Picture
 drawState state =
@@ -72,13 +78,16 @@ drawFrame :: Int -> [Picture]
 drawFrame frame = [ (translate 0 (windowHeight - 40) . scale 0.25 0.25
                      $ text (show frame))]
 
-nextState :: ViewPort -> Float -> State -> State
-nextState vp dt state =
-  if (isPaused state)
-  then state
-  else defState { cells = nextCells (cells state)
-                , frame = ((frame state) + 1)
-                }
+nextState :: Float -> State -> State
+nextState dt state
+  | (isOneTime state) = state { cells = nextCells (cells state)
+                              , frame = ((frame state) + 1)
+                              , isPaused = True
+                              , isOneTime = False
+                              }
+  | (isPaused state) = state
+  | otherwise =
+    state { cells = nextCells (cells state), frame = ((frame state) + 1) }
 
 nextCells :: [[Bool]] -> [[Bool]]
 nextCells board =
@@ -111,10 +120,26 @@ isActive board x y = let size = length board
                         then False
                         else board !! x !! y
 
+operate :: (Event -> State -> State)
+operate (EventKey key ks _ _) state = operateWithKey key ks state
+operate (EventMotion _) state = state
+operate (EventResize _) state = state
+
+operateWithKey :: Key -> KeyState -> State -> State
+operateWithKey (MouseButton LeftButton) ks state =
+  if ks == Down
+  then state { isOneTime = True }
+  else state
+operateWithKey (Char 's') ks state =
+  if ks == Down
+  then state { isPaused = not (isPaused state) }
+  else state
+operateWithKey _ _ state = state
+
 -------------
 -- main 関数
 -------------
 main :: IO ()
 main = do
   cells <- initialCells
-  simulate window white 10 cells drawState nextState
+  play window white 5 cells drawState operate nextState
