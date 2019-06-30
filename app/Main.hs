@@ -33,14 +33,14 @@ defState =
 --------------------------
 -- シミュレーションの実装
 --------------------------
+fieldSize :: Int
+fieldSize = 30
+
 cellWidth :: Float
-cellWidth = 5
+cellWidth = (500 :: Float) / (fromIntegral fieldSize)
 
 cellHeight :: Float
-cellHeight = 5
-
-fieldSize :: Int
-fieldSize = 100
+cellHeight = (500 :: Float) / (fromIntegral fieldSize)
 
 fieldSizeM1 :: Int
 fieldSizeM1 = fieldSize - 1
@@ -52,7 +52,8 @@ initialCells = do
 
 drawState :: State -> Picture
 drawState state =
-  let vp = ViewPort { viewPortTranslate = (-320, -320)
+  let vp = ViewPort { viewPortTranslate =
+                        ((-320 + cellWidth), (-320 + cellHeight))
                     , viewPortRotate = 0
                     , viewPortScale = 1
                     }
@@ -75,8 +76,9 @@ drawCell cells (x, y) =
      else blank
 
 drawFrame :: Int -> [Picture]
-drawFrame frame = [ (translate 0 (windowHeight - 40) . scale 0.25 0.25
-                     $ text (show frame))]
+drawFrame frame =
+  [ (translate 0 (windowHeight - (cellHeight + 40)) . scale 0.25 0.25
+     $ text (show frame))]
 
 nextState :: Float -> State -> State
 nextState dt state
