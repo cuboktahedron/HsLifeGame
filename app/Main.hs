@@ -46,9 +46,17 @@ fieldSizeM1 :: Int
 fieldSizeM1 = fieldSize - 1
 
 initialCells :: IO State
-initialCells = do
+initialCells = 
+  let cells = map (\_ -> replicate fieldSize False) [0 .. fieldSizeM1]
+  in return defState { cells = cells, isPaused = True }
+
+randomCells :: IO State
+randomCells = do
   cells <- mapM (\_ -> replicateM fieldSize randomIO) [0 .. fieldSizeM1]
   return defState { cells = cells, isPaused = True }
+
+drawStateIO :: State -> IO Picture
+drawStateIO state = return $ drawState state
 
 drawState :: State -> Picture
 drawState state =
@@ -80,6 +88,9 @@ drawFrame frame =
   [ (translate 0 (windowHeight - (cellHeight + 40)) . scale 0.25 0.25
      $ text (show frame))]
 
+nextStateIO :: Float -> State -> IO State
+nextStateIO dt state = return $ nextState dt state
+
 nextState :: Float -> State -> State
 nextState dt state
   | (isOneTime state) = state { cells = nextCells (cells state)
@@ -95,7 +106,8 @@ nextCells :: [[Bool]] -> [[Bool]]
 nextCells cells =
   let coords = [(x, y) | x <- [0 .. fieldSizeM1], y <- [0 .. fieldSizeM1]]
       lineCells = map (nextCell cells) coords
-  in [take fieldSize (drop (fieldSize * i) lineCells) | i <- [0 .. fieldSizeM1]]
+  in [take fieldSize (drop (fieldSize * i) lineCells)
+     | i <- [0 .. fieldSizeM1]]
 
 nextCell :: [[Bool]] -> (Int, Int) -> Bool
 nextCell cells (x, y) =
@@ -130,21 +142,29 @@ isActive board x y =
           | otherwise -> y
   in board !! xx !! yy
 
-operate :: (Event -> State -> State)
-operate (EventKey key ks _ _) state = operateWithKey key ks state
-operate (EventMotion _) state = state
-operate (EventResize _) state = state
+operateIO :: Event -> State -> IO State
+operateIO (EventKey key ks _ _) state = operateWithKeyIO key ks state
+operateIO (EventMotion _) state = return state
+operateIO (EventResize _) state = return state
 
-operateWithKey :: Key -> KeyState -> State -> State
-operateWithKey (MouseButton LeftButton) ks state =
+operateWithKeyIO :: Key -> KeyState -> State -> IO State
+operateWithKeyIO (MouseButton LeftButton) ks state = return
+  $ if ks == Down
+    then state { isOneTime = True }
+    else state
+operateWithKeyIO (Char 'c') ks state =
   if ks == Down
-  then state { isOneTime = True }
-  else state
-operateWithKey (Char 's') ks state =
+    then initialCells
+    else return state
+operateWithKeyIO (Char 'r') ks state =
   if ks == Down
-  then state { isPaused = not (isPaused state) }
-  else state
-operateWithKey _ _ state = state
+    then randomCells
+    else return state
+operateWithKeyIO (Char 's') ks state = return
+  $ if ks == Down
+    then state { isPaused = not (isPaused state) }
+    else state
+operateWithKeyIO _ _ state = return state
 
 -------------
 -- main 関数
@@ -152,4 +172,4 @@ operateWithKey _ _ state = state
 main :: IO ()
 main = do
   cells <- initialCells
-  play window white 5 cells drawState operate nextState
+  playIO window white 5 cells drawStateIO operateIO nextStateIO
